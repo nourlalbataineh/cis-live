@@ -143,7 +143,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,#45596A 50%),linea
     <div class="hello" id="hello"><svg viewBox="4 0 256 256" role="img" aria-label="Khazn waving"></svg><div><b id="helloName">Welcome!</b><span>Khazn is keeping score. Vote after every pitch.</span></div></div>
     <div class="seg" role="group" aria-label="Game">
       <button id="tabPitch" aria-pressed="true">Pitch Sprint</button>
-      <button id="tabGandalf" aria-pressed="false">Gandalf</button>
+      <button id="tabGandalf" aria-pressed="false">Agent Breaker</button>
     </div>
 
     <div id="pitchPane" class="card peeked">
@@ -160,16 +160,15 @@ select{background-image:linear-gradient(45deg,transparent 50%,#45596A 50%),linea
 
     <div id="gandalfPane" class="card amber peeked hidden">
       <svg class="peekc" viewBox="30 12 200 172" aria-hidden="true"></svg>
-      <span class="kicker" style="color:#9A6A00">Break Gandalf</span>
-      <h2>Highest level you passed</h2>
+      <span class="kicker" style="color:#9A6A00">Agent Breaker</span>
+      <h2>Levels your team cleared</h2>
       <div class="stepper">
         <button id="lvMinus" aria-label="Lower level">−</button>
-        <div class="lv"><div class="sg" id="lv">0</div><div>of 8</div></div>
+        <div class="lv"><div class="sg" id="lv">0</div><div>levels cleared</div></div>
         <button id="lvPlus" aria-label="Higher level">+</button>
       </div>
-      <div class="pips" id="lvPips"></div>
-      <button id="lvBtn" class="btn amber">Submit level</button>
-      <p class="note" id="lvLast">Keep a screenshot of your level as proof.</p>
+            <button id="lvBtn" class="btn amber">Submit levels</button>
+      <p class="note" id="lvLast">Play at play.lakera.ai/agent-breaker. Keep a screenshot as proof.</p>
     </div>
 
     <button id="switchTeam" class="btn ghost" style="align-self:center">Not your team? Switch</button>
@@ -193,12 +192,12 @@ select{background-image:linear-gradient(45deg,transparent 50%,#45596A 50%),linea
       <div class="rows" id="pitchRows"></div>
     </section>
     <section class="panel g">
-      <h2>Break Gandalf <small>highest level</small></h2>
+      <h2>Agent Breaker <small>levels cleared</small></h2>
       <div class="rows" id="gRows"></div>
     </section>
   </div>
   <div class="bfoot">
-    <span>Self-scores don't count. With 4+ judges, each team's highest and lowest judge are dropped. Gandalf ties go to whoever got there first.</span>
+    <span>Self-scores don't count. With 4+ judges, each team's highest and lowest judge are dropped. Agent Breaker ties go to whoever got there first.</span>
     <span id="teamCount"></span>
   </div>
 </main>
@@ -326,7 +325,7 @@ function compute(rows){
   const gl = new Map();               // team -> {lv, i}
   for(const r of rows){
     if(norm(r.kind)!=="gandalf" || !valid(r)) continue;
-    const lv = parseInt(r.level,10); if(!(lv>=0 && lv<=8)) continue;
+    const lv = parseInt(r.level,10); if(!(lv>=0 && lv<=50)) continue;
     const k = norm(r.team), cur = gl.get(k);
     if(!cur || lv > cur.lv) gl.set(k, {lv, i:r._i});
   }
@@ -403,8 +402,6 @@ function updateVoteBtn(){
 let lv = 0;
 function renderLv(){
   $("lv").textContent = lv;
-  const p = $("lvPips"); p.textContent="";
-  for(let i=1;i<=8;i++){ const x=document.createElement("i"); if(i<=lv) x.className="on"; p.append(x); }
 }
 
 async function refreshTeamsPhone(){
@@ -446,11 +443,11 @@ function initPhone(){
   $("tabPitch").onclick = ()=>{ $("tabPitch").setAttribute("aria-pressed","true"); $("tabGandalf").setAttribute("aria-pressed","false"); $("pitchPane").classList.remove("hidden"); $("gandalfPane").classList.add("hidden"); };
   $("tabGandalf").onclick = ()=>{ $("tabGandalf").setAttribute("aria-pressed","true"); $("tabPitch").setAttribute("aria-pressed","false"); $("gandalfPane").classList.remove("hidden"); $("pitchPane").classList.add("hidden"); };
   $("lvMinus").onclick = ()=>{ lv=Math.max(0,lv-1); renderLv(); };
-  $("lvPlus").onclick = ()=>{ lv=Math.min(8,lv+1); renderLv(); };
+  $("lvPlus").onclick = ()=>{ lv=Math.min(50,lv+1); renderLv(); };
   $("lvBtn").onclick = async ()=>{
     const m = me(); if(!m) return;
     $("lvBtn").disabled = true;
-    try{ await submit({kind:"gandalf", team:m.name, code:m.code, level:lv}); toast(`Level ${lv} submitted`); $("lvLast").textContent = `Last submitted: level ${lv}. Your best level counts.`; }
+    try{ await submit({kind:"gandalf", team:m.name, code:m.code, level:lv}); toast(`${lv} levels submitted`); $("lvLast").textContent = `Last submitted: ${lv} levels. Your best count is what counts.`; }
     catch(e){ toast("Couldn't send. Try again."); }
     $("lvBtn").disabled = false;
   };
@@ -494,10 +491,11 @@ function renderBoard(data){
   });
   data.gandalf.forEach((t,i)=>{
     const {r,nm,sc} = rowEl(t.lv!=null? ord(i+1) : "–", t.name, i===0 && t.lv!=null);
-    const gp=document.createElement("div"); gp.className="gp";
-    for(let k=1;k<=8;k++){ const x=document.createElement("i"); if(t.lv!=null && k<=t.lv) x.className="on"; gp.append(x); }
-    nm.append(gp);
-    sc.textContent = t.lv!=null ? `Lv ${t.lv}` : "–";
+    const gb=document.createElement("div"); gb.className="bar"; const gf=document.createElement("i"); gf.style.background="var(--amber)"; gb.append(gf); nm.append(gb);
+    const top = Math.max(1, ...data.gandalf.map(x=>x.lv||0));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ gf.style.width = t.lv!=null ? (t.lv/top*100)+"%" : "0%"; }));
+    sc.textContent = t.lv!=null ? `${t.lv}` : "–";
+    const gs=document.createElement("small"); gs.textContent = t.lv===1 ? "level" : "levels"; if(t.lv!=null) sc.append(gs);
     G.append(r);
   });
   $("teamCount").textContent = `${data.teams.size} team${data.teams.size===1?"":"s"} registered`;
@@ -567,7 +565,7 @@ function demoTick(){
     demo.rows.push(r);
   }
   const g = regs[Math.floor(Math.random()*regs.length)];
-  demo.rows.push({kind:"gandalf", team:g.team, code:g.code, level:Math.min(8, Math.floor(Math.random()*4)+Math.min(4,demo.step))});
+  demo.rows.push({kind:"gandalf", team:g.team, code:g.code, level:Math.floor(Math.random()*4)+Math.min(8,demo.step)});
   demo.step++;
 }
 function demoRows(){ if(!demo) demoInit(); if(location.hash.includes("board")) demoTick(); return demo.rows.map((r,i)=>({...r,_i:i})); }
