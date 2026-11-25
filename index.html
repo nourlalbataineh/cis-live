@@ -516,6 +516,7 @@ function initBoard(){
   $("board").classList.remove("hidden");
   $("peek").innerHTML = PEEK_SVG; $("wave").innerHTML = WAVE_SVG;
   tickBoard(); setInterval(tickBoard, CONFIG.POLL_MS_BOARD);
+  let ct; const hideC=()=>{document.body.style.cursor='none';}; document.addEventListener('mousemove',()=>{document.body.style.cursor='';clearTimeout(ct);ct=setTimeout(hideC,2000);}); ct=setTimeout(hideC,2000);
 }
 
 /* Khazn peeking (from the approved master drawing) */
